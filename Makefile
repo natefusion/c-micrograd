@@ -8,10 +8,10 @@ mode ?= debug
 OBJ_DIR ?= $(DEBUG)
 SRC_DIR := src
 
-CC := gcc
+CC := clang
 SRCS := $(wildcard $(SRC_DIR)/*.c)
 
-CFLAGS := -Wall -lm
+CFLAGS := -Wall -lm --std=c2x
 CPPFLAGS := -MMD -MP
 
 ifeq ($(mode), debug)
