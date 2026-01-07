@@ -6,8 +6,11 @@
 
 static int Values = 0;
 
+static Value** Topological_sorted_values = NULL;
+
 void value_reset(void) {
     Values = 0;
+    Topological_sorted_values = NULL;
 }
 
 Value* value_make(Arena *arena, double number, char const* name) {
@@ -36,7 +39,7 @@ Value* value_add(Arena *arena, Value *a, Value *b) {
 }
 
 Partial_Derivative value_mul_pd(Value* v) {
-    return (Partial_Derivative) {v->children.lhs->data, v->children.rhs->data};
+    return (Partial_Derivative) {v->children.rhs->data, v->children.lhs->data};
 }
 
 Value* value_mul(Arena *arena, Value *a, Value *b) {
@@ -164,13 +167,16 @@ void topological_sort(Value **topo_array, int* offset_from_end, Value *value) {
 }
 
 void value_backward(Arena *arena, Value *value) {
-    Value **topo_array = new(arena, Value *, Values);
-    int offset_from_end = 0;
-    topological_sort(topo_array, &offset_from_end, value);
+    if (Topological_sorted_values == NULL) {
+        Topological_sorted_values = new(arena, Value*, Values);
+        int offset_from_end = 0;
+        topological_sort(Topological_sorted_values, &offset_from_end, value);
+    }
+    
     value->grad = 1;
 
     for (int i = 0; i < Values; ++i) {
-        Value *v = topo_array[i];
+        Value *v = Topological_sorted_values[i];
         if ((v->flags & Flags_arity_1) != 0) {
             Partial_Derivative pd = v->pd_fn(v);
             v->children.lhs->grad += pd.lhs * v->grad;
