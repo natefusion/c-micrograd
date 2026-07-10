@@ -56,6 +56,8 @@ int tensor_subscripts_to_row_major_index(Tensor *v, int subscript, ...) {
     }
     va_end(args);
 
+    assert(index < tensor_numel(v->shape));
+
     return index;
 }
 
@@ -266,7 +268,7 @@ Partial_Derivative tensor_expt_pd(Tensor* v) {
 }
 
 Tensor* tensor_expt(Tensor *a, Tensor *power) {
-    Tensor *z = tensor_element_wise_monadic_operation(relu, a);
+    Tensor *z = tensor_element_wise_dyadic_operation(pow, a, power);
     z->pd_fn = tensor_expt_pd;
     z->op = "expt";
     
