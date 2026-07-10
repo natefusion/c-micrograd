@@ -4,6 +4,7 @@
 Arena Arena_init(ptrdiff_t cap) {
     Arena a = {0};
     a.beg = (char*)malloc(cap);
+    a.ptr = a.beg;
     a.end = a.beg ? a.beg+cap : 0;
     return a;
 }

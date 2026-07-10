@@ -42,18 +42,18 @@ struct Value {
 
 #define VALUE_(namae, value) Value* namae = value; namae->name = #namae
 
-void   value_reset(void);
-Value* value_make(Arena* arena, double number);
-Value* value_add(Arena* arena, Value *a, Value *b);
-Value* value_add(Arena *arena, Value *a, Value *b);
-Value* value_mul(Arena *arena, Value *a, Value *b);
-Value* value_sub(Arena *arena, Value *a, Value *b);
-Value* value_div(Arena *arena, Value *a, Value *b);
-Value* value_tanh(Arena *arena, Value *a);
-Value* value_relu(Arena *arena, Value *a);
-Value* value_expt(Arena *arena, Value *base, Value *power);
+void   value_reset(ptrdiff_t mem);
+Value* value_make(double number);
+Value* value_add(Value *a, Value *b);
+Value* value_add(Value *a, Value *b);
+Value* value_mul(Value *a, Value *b);
+Value* value_sub(Value *a, Value *b);
+Value* value_div(Value *a, Value *b);
+Value* value_tanh(Value *a);
+Value* value_relu(Value *a);
+Value* value_expt(Value *base, Value *power);
 
-void value_backward(Arena *arena, Value *value);
+void value_backward(Value *value);
 void value_draw_computational_graph(Value *v);
 
 #endif // SCALAR_ENGINE_H

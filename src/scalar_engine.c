@@ -4,17 +4,21 @@
 
 #include "scalar_engine.h"
 
-static int Values = 0;
+static Arena arena = {0};
 
+static int Values = 0;
 static Value** Topological_sorted_values = NULL;
 
-void value_reset(void) {
+void value_reset(ptrdiff_t mem) {
+    if (arena.ptr) { free(arena.ptr); }
+    arena = Arena_init(mem);
+
     Values = 0;
     Topological_sorted_values = NULL;
 }
 
-Value* value_make(Arena *arena, double number) {
-    Value *z = new(arena, Value, 1);
+Value* value_make(double number) {
+    Value *z = new(&arena, Value, 1);
     *z = (Value){.data = number, .name = NULL};
     Values++;
     return z;
@@ -24,8 +28,8 @@ Partial_Derivative add_pd(Value* v) {
     return (Partial_Derivative) {1.0, 1.0};
 }
 
-Value* value_add(Arena *arena, Value *a, Value *b) {
-    Value *z = new(arena, Value, 1);
+Value* value_add(Value *a, Value *b) {
+    Value *z = new(&arena, Value, 1);
     *z = (Value) {
         .data = a->data + b->data,
         .children = {a, b},
@@ -42,8 +46,8 @@ Partial_Derivative mul_pd(Value* v) {
     return (Partial_Derivative) {v->children.rhs->data, v->children.lhs->data};
 }
 
-Value* value_mul(Arena *arena, Value *a, Value *b) {
-    Value *z = new(arena, Value, 1);
+Value* value_mul(Value *a, Value *b) {
+    Value *z = new(&arena, Value, 1);
     *z = (Value) {
         .data = a->data * b->data,
         .children = {a, b},
@@ -60,8 +64,8 @@ Partial_Derivative sub_pd(Value* v) {
     return (Partial_Derivative) {1.0, -1.0};
 }
 
-Value* value_sub(Arena *arena, Value *a, Value *b) {
-    Value *z = new(arena, Value, 1);
+Value* value_sub(Value *a, Value *b) {
+    Value *z = new(&arena, Value, 1);
     *z = (Value){
         .data = a->data - b->data,
         .children = {a, b},
@@ -78,8 +82,8 @@ Partial_Derivative div_pd(Value* v) {
     return (Partial_Derivative) {1.0/v->children.rhs->data, -v->children.lhs->data / pow(v->children.rhs->data, 2.0)};
 }
 
-Value* value_div(Arena *arena, Value *a, Value *b) {
-    Value *z = new(arena, Value, 1);
+Value* value_div(Value *a, Value *b) {
+    Value *z = new(&arena, Value, 1);
     *z = (Value) {
         .data = a->data / b->data,
         .children = {a, b},
@@ -96,8 +100,8 @@ Partial_Derivative tanh_pd(Value* v) {
     return (Partial_Derivative) {1.0 - pow(tanh(v->children.lhs->data), 2.0)};
 }
 
-Value* value_tanh(Arena *arena, Value *a) {
-    Value *z = new(arena, Value, 1);
+Value* value_tanh(Value *a) {
+    Value *z = new(&arena, Value, 1);
     *z = (Value) {
         .data = tanh(a->data),
         .children = {a},
@@ -114,8 +118,8 @@ Partial_Derivative relu_pd(Value* v) {
     return (Partial_Derivative) {v->children.rhs->data > 0.0 ? 1.0 : 0.0};
 }
 
-Value* value_relu(Arena *arena, Value *a) {
-    Value *z = new(arena, Value, 1);
+Value* value_relu(Value *a) {
+    Value *z = new(&arena, Value, 1);
     *z = (Value) {
         .data = a->data > 0.0 ? a->data : 0.0,
         .children = {a},
@@ -134,8 +138,8 @@ Partial_Derivative expt_pd(Value *v) {
     return (Partial_Derivative) {power->data * pow(base->data, power->data - 1.0), log(base->data) * pow(base->data, power->data)};
 }
 
-Value* value_expt(Arena *arena, Value *base, Value* power) {
-    Value *z = new(arena, Value, 1);
+Value* value_expt(Value *base, Value* power) {
+    Value *z = new(&arena, Value, 1);
     *z = (Value) {
         .data = pow(base->data, power->data),
         .children = {base, power},
@@ -166,9 +170,9 @@ void topological_sort(Value **topo_array, int* offset_from_end, Value *value) {
     *offset_from_end += 1;
 }
 
-void value_backward(Arena *arena, Value *value) {
+void value_backward(Value *value) {
     if (Topological_sorted_values == NULL) {
-        Topological_sorted_values = new(arena, Value*, Values);
+        Topological_sorted_values = new(&arena, Value*, Values);
         int offset_from_end = 0;
         topological_sort(Topological_sorted_values, &offset_from_end, value);
     }

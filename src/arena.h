@@ -7,6 +7,7 @@
 #include <string.h>
 
 typedef struct {
+    char *ptr; // holds ptr from malloc for freeing
     char *beg;
     char *end;
 } Arena;

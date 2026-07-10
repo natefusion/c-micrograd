@@ -4,14 +4,12 @@
 
 static Arena arena = {0};
 static ptrdiff_t Mem = 0;
-static char *arena_ptr = NULL;
 
 
 // this should act like a circular buffer.
 // maybe fuse this with the original
 static Arena arena_temp = {0};
 static ptrdiff_t Mem_temp = 1000;
-static char *arena_temp_ptr = NULL;
 
 static int Tensors = 0;
 static Tensor** Topological_sorted_values = NULL;
@@ -21,22 +19,11 @@ void tensor_set_mem(ptrdiff_t bytes) {
 }
 
 void tensor_reset(void) {
-    if (arena_ptr) {
-        free(arena_ptr);
-        arena = (Arena) {0};
-    }
-    
+    if (arena.ptr) { free(arena.ptr); }
     arena = Arena_init(Mem);
-    arena_ptr = arena.beg;
 
-    if (arena_temp_ptr) {
-        free(arena_temp_ptr);
-        arena_temp = (Arena) {0};
-    }
-
+    if (arena_temp.ptr) { free(arena_temp.ptr); }
     arena_temp = Arena_init(Mem_temp);
-    arena_temp_ptr = arena_temp.beg;
-
 
     Tensors = 0;
     Topological_sorted_values = NULL;
