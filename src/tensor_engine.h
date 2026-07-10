@@ -52,8 +52,7 @@ struct Tensor {
     char const *name;
 };
 
-void tensor_set_mem(ptrdiff_t bytes);
-void tensor_reset(void);
+void tensor_reset(ptrdiff_t mem);
 
 bool tensor_is_scalar(Tensor *v);
 bool tensor_is_shape_eq(Array_int lhs, Array_int rhs);

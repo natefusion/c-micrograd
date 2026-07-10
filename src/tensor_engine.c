@@ -3,27 +3,20 @@
 #include "tensor_engine.h"
 
 static Arena arena = {0};
-static ptrdiff_t Mem = 0;
-
 
 // this should act like a circular buffer.
 // maybe fuse this with the original
 static Arena arena_temp = {0};
-static ptrdiff_t Mem_temp = 1000;
 
 static int Tensors = 0;
 static Tensor** Topological_sorted_values = NULL;
 
-void tensor_set_mem(ptrdiff_t bytes) {
-    Mem = bytes;
-}
-
-void tensor_reset(void) {
+void tensor_reset(ptrdiff_t mem) {
     if (arena.ptr) { free(arena.ptr); }
-    arena = Arena_init(Mem);
+    arena = Arena_init(mem);
 
     if (arena_temp.ptr) { free(arena_temp.ptr); }
-    arena_temp = Arena_init(Mem_temp);
+    arena_temp = Arena_init(mem);
 
     Tensors = 0;
     Topological_sorted_values = NULL;
