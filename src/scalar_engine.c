@@ -13,14 +13,14 @@ void value_reset(void) {
     Topological_sorted_values = NULL;
 }
 
-Value* value_make(Arena *arena, double number, char const* name) {
+Value* value_make(Arena *arena, double number) {
     Value *z = new(arena, Value, 1);
-    *z = (Value){.data = number, .name = name};
+    *z = (Value){.data = number, .name = NULL};
     Values++;
     return z;
 }
 
-Partial_Derivative value_add_pd(Value* v) {
+Partial_Derivative add_pd(Value* v) {
     return (Partial_Derivative) {1.0, 1.0};
 }
 
@@ -29,7 +29,7 @@ Value* value_add(Arena *arena, Value *a, Value *b) {
     *z = (Value) {
         .data = a->data + b->data,
         .children = {a, b},
-        .pd_fn = value_add_pd,
+        .pd_fn = add_pd,
         .flags = Flags_arity_2,
         .op = "+",
     };
@@ -38,7 +38,7 @@ Value* value_add(Arena *arena, Value *a, Value *b) {
     return z;
 }
 
-Partial_Derivative value_mul_pd(Value* v) {
+Partial_Derivative mul_pd(Value* v) {
     return (Partial_Derivative) {v->children.rhs->data, v->children.lhs->data};
 }
 
@@ -47,7 +47,7 @@ Value* value_mul(Arena *arena, Value *a, Value *b) {
     *z = (Value) {
         .data = a->data * b->data,
         .children = {a, b},
-        .pd_fn = value_mul_pd,
+        .pd_fn = mul_pd,
         .flags = Flags_arity_2,
         .op = "*",
     };
@@ -56,7 +56,7 @@ Value* value_mul(Arena *arena, Value *a, Value *b) {
     return z;
 }
 
-Partial_Derivative value_sub_pd(Value* v) {
+Partial_Derivative sub_pd(Value* v) {
     return (Partial_Derivative) {1.0, -1.0};
 }
 
@@ -65,7 +65,7 @@ Value* value_sub(Arena *arena, Value *a, Value *b) {
     *z = (Value){
         .data = a->data - b->data,
         .children = {a, b},
-        .pd_fn = value_sub_pd,
+        .pd_fn = sub_pd,
         .flags = Flags_arity_2,
         .op = "-",
     };
@@ -74,7 +74,7 @@ Value* value_sub(Arena *arena, Value *a, Value *b) {
     return z;
 }
 
-Partial_Derivative value_div_pd(Value* v) {
+Partial_Derivative div_pd(Value* v) {
     return (Partial_Derivative) {1.0/v->children.rhs->data, -v->children.lhs->data / pow(v->children.rhs->data, 2.0)};
 }
 
@@ -83,7 +83,7 @@ Value* value_div(Arena *arena, Value *a, Value *b) {
     *z = (Value) {
         .data = a->data / b->data,
         .children = {a, b},
-        .pd_fn = value_div_pd,
+        .pd_fn = div_pd,
         .flags = Flags_arity_2,
         .op = "/",
     };
@@ -92,16 +92,16 @@ Value* value_div(Arena *arena, Value *a, Value *b) {
     return z;
 }
 
-Partial_Derivative value_tanh_pd(Value* v) {
+Partial_Derivative tanh_pd(Value* v) {
     return (Partial_Derivative) {1.0 - pow(tanh(v->children.lhs->data), 2.0)};
 }
 
-Value *value_tanh(Arena *arena, Value *a) {
+Value* value_tanh(Arena *arena, Value *a) {
     Value *z = new(arena, Value, 1);
     *z = (Value) {
         .data = tanh(a->data),
         .children = {a},
-        .pd_fn = value_tanh_pd,
+        .pd_fn = tanh_pd,
         .flags = Flags_arity_1,
         .op = "tanh",
     };
@@ -110,16 +110,16 @@ Value *value_tanh(Arena *arena, Value *a) {
     return z;
 }
 
-Partial_Derivative value_relu_pd(Value* v) {
+Partial_Derivative relu_pd(Value* v) {
     return (Partial_Derivative) {v->children.rhs->data > 0.0 ? 1.0 : 0.0};
 }
 
-Value *value_relu(Arena *arena, Value *a) {
+Value* value_relu(Arena *arena, Value *a) {
     Value *z = new(arena, Value, 1);
     *z = (Value) {
         .data = a->data > 0.0 ? a->data : 0.0,
         .children = {a},
-        .pd_fn = value_relu_pd,
+        .pd_fn = relu_pd,
         .flags = Flags_arity_1,
         .op = "relu",
     };
@@ -128,18 +128,18 @@ Value *value_relu(Arena *arena, Value *a) {
     return z;
 }
 
-Partial_Derivative value_expt_pd(Value *v) {
+Partial_Derivative expt_pd(Value *v) {
     Value *base = v->children.lhs;
     Value *power = v->children.rhs;
     return (Partial_Derivative) {power->data * pow(base->data, power->data - 1.0), log(base->data) * pow(base->data, power->data)};
 }
 
-Value *value_expt(Arena *arena, Value *base, Value* power) {
+Value* value_expt(Arena *arena, Value *base, Value* power) {
     Value *z = new(arena, Value, 1);
     *z = (Value) {
         .data = pow(base->data, power->data),
         .children = {base, power},
-        .pd_fn = value_expt_pd,
+        .pd_fn = expt_pd,
         .flags = Flags_arity_2,
         .op = "expt",
     };
@@ -205,7 +205,7 @@ void draw_computational_graph_recur(Value *parent, Value *v) {
     }
 }
 
-void draw_computational_graph(Value* v) {
+void value_draw_computational_graph(Value* v) {
     printf("digraph computational_graph {\n");
     printf("  rankdir=TB;\n");
     printf("  node [shape=box, style=filled, fillcolor=lightblue];\n");
