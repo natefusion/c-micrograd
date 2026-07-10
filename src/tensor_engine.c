@@ -3,9 +3,6 @@
 #include "tensor_engine.h"
 
 static Arena arena = {0};
-
-// this should act like a circular buffer.
-// maybe fuse this with the original
 static Arena arena_temp = {0};
 
 static int Tensors = 0;
@@ -54,31 +51,30 @@ int tensor_subscripts_to_row_major_index(Tensor *v, int subscript, ...) {
     return index;
 }
 
-Tensor* tensor_make_arena(Arena *arena, double number, Array_int shape) {
+Tensor* tensor_make_arena(Arena *arena, enum Arena_Alloc_Strategy strat, double number, Array_int shape) {
     Tensor* z = new(arena, Tensor);
 
     int elements = tensor_numel(shape);
     
     *z = (Tensor) {
-        .data = new(arena, double, elements),
-        .grad = new(arena, double, elements),
+        .data = new(arena, double, elements, strat),
+        .grad = new(arena, double, elements, strat),
         .shape = shape,
     };
 
     // already zeroed
     if (number != 0.0) for (int i = 0; i < elements; ++i) z->data[i] = number;
 
-    Tensors++;
-    
     return z;
 }
 
 Tensor *tensor_make(double number, Array_int shape) {
-    return tensor_make_arena(&arena, number, shape);
+    Tensors++;
+    return tensor_make_arena(&arena, Arena_Alloc_Fail, number, shape);
 }
 
-Tensor* tensor_make_temp(double number, Array_int shape) {
-    return tensor_make_arena(&arena_temp, number, shape);
+void tensor_make_temp(Tensor **dst, double number, Array_int shape) {
+    *dst = tensor_make_arena(&arena_temp, Arena_Alloc_Wrap, number, shape);
 }
 
 Tensor *tensor_make_with_data(Tensor *copy_from) {
@@ -151,7 +147,9 @@ Tensor *tensor_element_wise_monadic_operation(Monadic_Fn op, Tensor *a) {
 }
 
 Partial_Derivative tensor_add_pd(Tensor* v) {
-    Tensor *scalar = tensor_make(1.0, v->shape);
+    Tensor *scalar;
+    tensor_make_temp(&scalar, 1.0, v->shape);
+
     return (Partial_Derivative) {scalar, scalar};
 }
 
@@ -176,8 +174,10 @@ Tensor* tensor_mul(Tensor *a, Tensor *b) {
 }
 
 Partial_Derivative tensor_sub_pd(Tensor* v) {
-    Tensor *scalar1 = tensor_make(1.0, v->shape);
-    Tensor *scalar2 = tensor_make(-1.0, v->shape);
+    Tensor *scalar1, *scalar2;
+    tensor_make_temp(&scalar1, 1.0, v->shape);
+    tensor_make_temp(&scalar2, -1.0, v->shape);
+
     return (Partial_Derivative) {scalar1, scalar2};
 }
 
@@ -190,10 +190,11 @@ Tensor* tensor_sub(Tensor *a, Tensor *b) {
 }
 
 Partial_Derivative tensor_div_pd(Tensor* v) {
-    Tensor *a = tensor_make(0.0, v->shape);
+    Tensor *a, *b;
+    tensor_make_temp(&a, 0.0, v->shape);
+    tensor_make_temp(&b, 0.0, v->shape);
+
     tensor_monadic_apply(a, inv_fn, v->children.rhs);
-    
-    Tensor *b = tensor_make(0.0, v->shape);
     tensor_apply_scalar_right(b, pow, v->children.rhs, 2.0);
     tensor_dyadic_apply(b, div_fn, v->children.lhs, b);
     tensor_monadic_apply(b, neg_fn, b);
@@ -210,7 +211,9 @@ Tensor* tensor_div(Tensor *a, Tensor *b) {
 }
 
 Partial_Derivative tensor_tanh_pd(Tensor* v) {
-    Tensor *a = tensor_make(0.0, v->shape);
+    Tensor *a;
+    tensor_make_temp(&a, 0.0, v->shape);
+
     tensor_monadic_apply(a, tanh, v->children.lhs);
     tensor_apply_scalar_right(a, pow, a, 2.0);
     tensor_apply_scalar_left(a, sub_fn, 1.0, a);
@@ -227,7 +230,8 @@ Tensor* tensor_tanh(Tensor *a) {
 }
 
 Partial_Derivative tensor_relu_pd(Tensor* v) {
-    Tensor *a = tensor_make(0.0, v->shape);
+    Tensor *a;
+    tensor_make_temp(&a, 0.0, v->shape);
     tensor_monadic_apply(a, diff_relu, v->children.rhs);
     
     return (Partial_Derivative) {a};
@@ -245,9 +249,10 @@ Partial_Derivative tensor_expt_pd(Tensor* v) {
     Tensor *base = v->children.lhs;
     Tensor *power = v->children.rhs;
 
-    Tensor *a = tensor_make(0.0, v->shape);
-    Tensor *b = tensor_make(0.0, v->shape);
-    Tensor *temp = tensor_make_temp(0.0, v->shape);
+    Tensor *a, *b, *temp;
+    tensor_make_temp(&a, 0.0, v->shape);
+    tensor_make_temp(&b, 0.0, v->shape);
+    tensor_make_temp(&temp, 0.0, v->shape);
 
     tensor_dyadic_apply(b, pow, base, power);
     tensor_monadic_apply(temp, log, base);
