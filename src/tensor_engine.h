@@ -12,9 +12,10 @@
 #include "arena.h"
 #include "array.h"
 
-Array_define(int, Array_int);
-
 typedef struct Tensor Tensor;
+
+Array_define(int, Array_int);
+Array_define(Tensor*, Array_Tensor);
 
 typedef double (*Dyadic_Fn)(double, double);
 typedef double (*Monadic_Fn)(double);
@@ -56,11 +57,16 @@ void tensor_reset(ptrdiff_t mem);
 
 bool tensor_is_scalar(Tensor *v);
 bool tensor_is_shape_eq(Array_int lhs, Array_int rhs);
+int tensor_order(Tensor* v);
+int tensor_rank(Tensor* v, int dimension);
 int tensor_numel(Array_int shape);
-int tensor_subscripts_to_row_major_index(Tensor *v, int subscript, ...);
-#define tensor_at(tensor, subscript, ...) (maybe_ref((tensor))->data[tensor_subscripts_to_row_major_index(maybe_ref((tensor)), (subscript), ##__VA_ARGS__)])
+int tensor_at_lame(Tensor *v, int subscript, ...);
+#define tensor_at(tensor, subscript, ...) tensor_at_lame(maybe_ref((tensor)), (subscript), __VA_ARGS__, -1)
 
+Array_int tensor_shape_make_lame(int *array, int size);
+#define tensor_shape_make(...) tensor_shape_make_lame((int[])__VA_ARGS__, sizeof((int[])__VA_ARGS__)/sizeof((int[])__VA_ARGS__[0]))
 Tensor* tensor_make(double number, Array_int shape);
+Array_Tensor tensor_make_array(int len);
 Tensor* tensor_add(Tensor *a, Tensor *b);
 Tensor* tensor_mul(Tensor *a, Tensor *b);
 Tensor* tensor_sub(Tensor *a, Tensor *b);
@@ -68,6 +74,7 @@ Tensor* tensor_div(Tensor *a, Tensor *b);
 Tensor *tensor_tanh(Tensor *a);
 Tensor *tensor_relu(Tensor *a);
 Tensor *tensor_expt(Tensor *base, Tensor* power);
+Tensor* tensor_product(Tensor *a, Tensor *b);
 
 Partial_Derivative tensor_add_pd(Tensor* v);
 Partial_Derivative tensor_mul_pd(Tensor* v);
@@ -80,5 +87,7 @@ Partial_Derivative tensor_expt_pd(Tensor *v);
 void tensor_topological_sort(Tensor **topo_array, int* offset_from_end, Tensor *value);
 void tensor_backward(Tensor *value);
 void draw_computational_graph(Tensor *v);
+
+Arena *tensor_get_arena(void);
 
 #endif // TENSOR_ENGINE_H

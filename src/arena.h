@@ -18,12 +18,13 @@ typedef struct {
 } Arena;
 
 Arena Arena_init(ptrdiff_t cap);
-void *alloc(Arena *a, ptrdiff_t size, ptrdiff_t align, ptrdiff_t count, enum Arena_Alloc_Strategy flags);
+void *alloc(Arena *a, ptrdiff_t size, ptrdiff_t align, ptrdiff_t count, enum Arena_Alloc_Strategy flags, char* cpyfrom);
 
-#define new(...)            newx(__VA_ARGS__,new4,new3,new2)(__VA_ARGS__)
-#define newx(a,b,c,d,e,...) e
-#define new2(a, t)          (t *)alloc(a, sizeof(t), _Alignof(t), 1, Arena_Alloc_Fail)
-#define new3(a, t, n)       (t *)alloc(a, sizeof(t), _Alignof(t), n, Arena_Alloc_Fail)
-#define new4(a, t, n, f) (t *)alloc(a, sizeof(t), _Alignof(t), n, f)
+#define new(...)            newx(__VA_ARGS__,new5,new4,new3,new2)(__VA_ARGS__)
+#define newx(a,b,c,d,e,f,...) f
+#define new2(a, t)          (t *)alloc(a, sizeof(t), _Alignof(t), 1, Arena_Alloc_Fail, NULL)
+#define new3(a, t, n)       (t *)alloc(a, sizeof(t), _Alignof(t), n, Arena_Alloc_Fail, NULL)
+#define new4(a, t, n, f) (t *)alloc(a, sizeof(t), _Alignof(t), n, f, NULL)
+#define new5(a, t, n, f, c) (t *)alloc(a, sizeof(t), _Alignof(t), n, f, c)
 
 #endif // ARENA_H

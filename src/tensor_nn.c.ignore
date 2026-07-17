@@ -1,0 +1,37 @@
+#include "tensor_nn.h"
+
+struct MLP make_mlp(Array_int shape) {
+    int len_layers = len(shape)-1;
+
+    Array_Tensor layers = tensor_make_array(len_layers);
+    
+    for (int i = 0; i < len_layers; ++i) {
+        at(layers, i) = tensor_make(0.0, tensor_shape_make({at(shape, i)+/*bias*/1, at(shape, i+1)}));
+    }
+
+    return (struct MLP) { .layers = layers };
+}
+
+Tensor *neuron_forward(Tensor *neuron, Tensor *x) {
+    Tensor *z = tensor_matmul(neuron, x);
+    z = tensor_relu(z);
+}
+
+Tensor *layer_forward(Tensor *layer, Tensor *x) {
+    int num_neurons = at(layer->shape, 1);
+    Tensor *out = tensor_make(tensor_make_shape({num_neurons, at(x->shape, 0)}));
+    for (int i = 0; i < num_neurons; ++i) {
+        Tensor *neuron = tensor_view(layer, tensor_make_shape({-1, i}));
+        tensor_insert(out, neuron_forward(neuron, x), i);
+    }
+
+    return out;
+}
+
+Tensor *mlp_forward(struct MLP *mlp, Tensor *x) {
+    for (int i = 0; i < len(mlp->layers); ++i) {
+        x = layer_forward(at(mlp->layers, i), x);
+    }
+
+    return x;
+}

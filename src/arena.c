@@ -9,7 +9,7 @@ Arena Arena_init(ptrdiff_t cap) {
     return a;
 }
 
-void *alloc(Arena *a, ptrdiff_t size, ptrdiff_t align, ptrdiff_t count, enum Arena_Alloc_Strategy strat) {
+void *alloc(Arena *a, ptrdiff_t size, ptrdiff_t align, ptrdiff_t count, enum Arena_Alloc_Strategy strat, char *cpyfrom) {
     ptrdiff_t padding = -(uintptr_t)a->beg & (align - 1);
     ptrdiff_t available = a->end - a->beg - padding;
     if (available < 0 || count > available/size) {
@@ -29,5 +29,10 @@ void *alloc(Arena *a, ptrdiff_t size, ptrdiff_t align, ptrdiff_t count, enum Are
     }
     void *p = a->beg + padding;
     a->beg += padding + count*size;
-    return memset(p, 0, count*size);
+    if (cpyfrom) {
+        memcpy(p, cpyfrom, count*size);
+    } else {
+        memset(p, 0, count*size);
+    }
+    return p;
 }
